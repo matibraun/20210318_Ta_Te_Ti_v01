@@ -29,7 +29,15 @@ def getPlay(board):
         columnNumber = (int(play) - 1) % len(board)
 
     return (lineNumber, columnNumber)
-    
+
+def checkWinner(board):
+    if board[0][0] != ' ' and board[0][0] == board[1][0] and board[0][0] == board[2][0] or board[0][1] != ' ' and board[0][1] == board[1][1] and board[0][1] == board[2][1] or board[0][2] != ' ' and board[0][2] == board[1][2] and board[0][2] == board[2][2] or board[0][0] != ' ' and board[0][0] == board[0][1] and board[0][0] == board[0][2] or board[1][0] != ' ' and board[1][0] == board[1][1] and board[1][0] == board[1][2] or board[2][0] != ' ' and board[2][0] == board[2][1] and board[2][0] == board[2][2] or board[0][0] != ' ' and board[0][0] == board[1][1] and board[0][0] == board[2][2] or board[0][2] != ' ' and board[0][2] == board[1][1] and board[0][2] == board[2][0]:
+        return True
+
+def checkBoardFull(board):
+    if ' ' not in board[0] and ' ' not in board[1] and ' ' not in board[2]:
+        return True    
+
 
 def render(state):
     if state['stage'] == 'Welcome':
@@ -41,6 +49,31 @@ def render(state):
     if state['stage'] == 'Playing':
         print(state['players'])
         print(state['board'])
+        print(f"Es el turno de {state['players'][state['turn']]['name']}")
+    
+    if state['stage'] == 'FinishedWithWinner':
+        print(f"El juego ha terminado. El ganador es {state['players'][state['turn']]['name']}")
+        print('El tablero final es')
+        print(state['board'])
+        print('Los jugadores fueron:')
+        print(state['players'])
+    
+    if state['stage'] == 'FinishedWithoutWinner':
+        print("El juego ha terminado sin ningun ganador")
+        print('El tablero final es')
+        print(state['board'])
+        print('Los jugadores fueron:')
+        print(state['players'])
+    
+    if state['stage'] == 'AfterGameOptions':
+        print(state['board'])            
+    
+    if state['stage'] == 'CLOSING_APP':
+        print('Gracias por usar la app')
+        print(state['players'])
+        exit()
+
+
     
 
 
@@ -72,11 +105,40 @@ def get_next_action(state):
                 'lineNumber': lineNumber,
                 'columnNumber': columnNumber,
             }
-            
         }
 
+    if state['stage'] == 'AfterGameOptions':
+        print(
+            '1. Ver el historico de la partida\n'
+            '2. Jugar la revancha\n'
+            '3. Jugar una nueva partida\n'
+            '4. Salir de la aplicacion\n'
+        )
+        option = input('Elija que desea hacer a continuacion: ')
 
+        while option.isnumeric() == False or int(option) < 1 or int(option) > 4:
+            print ('La opcion seleccionada es incorrecta') 
+            option = input('Elija que desea hacer a continuacion: ')
         
+        if option == '1':
+            return {
+                'type': 'REVIEW_GAME',
+            }
+        
+        if option == '2':
+            return {
+                'type': 'REMATCH',
+            }
+
+        if option == '3':
+            return {
+                'type': 'NEW_GAME',
+            }
+
+        if option == '4':
+            return {
+                'type': 'EXIT',
+            }
 
 
 
@@ -102,16 +164,65 @@ def reducer(state, action):
                 'board': [[' ', ' ', ' '], [' ', ' ', ' '], [' ', ' ', ' ']],
                 'turn': 0,
             }
+
+    if state['stage'] == 'Playing':
         
         if action['type'] == 'LOAD_PLAY':
             new_board = copy.deepcopy(state['board'])
             new_board[action['payload']['lineNumber']][action['payload']['columnNumber']] = state['players'][state['turn']]['symbol']
-            new_turn = state['turn']
+            new_turn = (state['turn'] + 1) % len(state['players'])
+
+            if checkBoardFull(new_board) == True:
+                return {
+                    **state,
+                    'stage': 'FinishedWithoutWinner',
+                    'board': new_board,
+                }
+
+            if checkWinner(new_board) == True:
+                return {
+                    **state,
+                    'stage': 'FinishedWithWinner',
+                    'board': new_board,
+                }
+
             return {
                 **state,
                 'board': new_board,
                 'turn': new_turn
             }
+
+    
+    if state['stage'] == 'FinishedWithoutWinner' or state['stage'] == 'FinishedWithWinner':
+        return {
+            **state,
+            'stage': 'AfterGameOptions'
+        }
+
+    if state['stage'] == 'AfterGameOptions':
+        if action['type'] == 'REVIEW_GAME':
+            return {
+                **state,
+            }
+
+        if action['type'] == 'REMATCH':
+            return {
+                **state,
+                'stage': 'Playing',
+            }
+
+        if action['type'] == 'NEW_GAME':
+            return {
+                **state,
+                'stage': 'LoadingPlayers',
+            }
+
+        if action['type'] == 'EXIT':
+            return {
+                **state,
+                'stage': 'ClosingApp',
+            }
+
 
 
 state = {
