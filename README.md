@@ -1,1 +1,5 @@
-"# 20210318_Ta_Te_Ti_v01" 
+# Tic Tac Toe game. 
+
+# Python
+
+# State design. Inmutability of state. React-redux working process (actions, reducers and render). Infinite loop app. Player input. Shallow vs deep copy.
